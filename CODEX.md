@@ -4,6 +4,136 @@ Memoria viva del proyecto `dashboard-operativo`.
 
 Este archivo debe leerse al inicio de cada nueva sesion de trabajo para recuperar el contexto funcional, visual y operativo del proyecto. Tambien debe actualizarse cada vez que cambien reglas, estructura, pantallas o decisiones importantes.
 
+## Estado actual consolidado
+
+Esta es la referencia vigente del proyecto. Si alguna seccion vieja mas abajo contradice este bloque, manda este bloque.
+
+### Producto actual
+
+- App estatica para GitHub Pages.
+- Fuente de datos: Excel cargado manualmente desde navegador.
+- Persistencia: `localStorage` en el navegador.
+- Regla central: cada nueva carga se mezcla con la base existente por `Codigo de Embarque`.
+- Si un embarque desaparece del Excel nuevo, no se borra: se conserva y se marca como `Ya no viene en archivo`.
+
+### Vistas actuales
+
+- `Clientes`
+- `Prioridad`
+- `General`
+- pestañas por mes detectadas desde el codigo del embarque
+
+### Estructura visible actual de la pagina
+
+- hero superior con dos bloques paralelos
+- bloque izquierdo con marca `Dashboard Operativo` y titulo `Loadboard Multi / agentes`
+- bloque derecho `Actualizar base` para subir Excel y ver la ultima carga
+- metricas superiores
+- desgloses
+- bloque `Vista y filtros`
+- tabla principal al final
+
+### Filtros actuales
+
+- busqueda libre
+- estatus
+- creado por
+- tipo de servicio
+- mostrar solo vivos
+- solo `ya no viene en archivo`
+
+### Vista General y vistas por mes
+
+Columnas activas:
+
+- `Embarque / Cliente`
+- `Mes`
+- `Estatus`
+- `Creado por`
+- `Servicio`
+- `Clasificacion`
+- `Ultimo cambio`
+- `Ultima carga`
+
+Nota:
+
+- `PRO` y `AWB` ya no se muestran en la tabla principal.
+- `Cliente` va junto al `Codigo de Embarque`.
+
+### Vista Prioridad
+
+- muestra solo embarques vivos
+- usa el mes derivado del codigo para saber de que mes es el embarque
+- usa `Fecha Creacion` para calcular cuantos dias lleva abierto
+- muestra score numerico y nivel `Alta`, `Media` o `Baja`
+
+Columnas activas:
+
+- `Embarque / Cliente`
+- `Mes`
+- `Estatus`
+- `Creado por`
+- `Servicio`
+- `Fecha creacion`
+- `Dias abiertos`
+- `Prioridad`
+
+### Vista Clientes
+
+- resume operaciones por cliente
+- la tabla de clientes abre un detalle inline tipo acordeon justo debajo de la fila seleccionada
+- el detalle del cliente incluye:
+  - metricas rapidas
+  - desglose por mes
+  - desglose por estatus
+  - tarjetas compactas por embarque
+
+Metricas del detalle del cliente:
+
+- embarques vivos
+- prioridad alta
+- edad promedio
+- servicio dominante
+
+Regla importante:
+
+- `Prioridad alta` dentro del detalle del cliente cuenta solo embarques vivos, igual que el resumen agregado por cliente
+
+### Reglas operativas vigentes
+
+- equipo permitido:
+  - `Joselyn Valdez`
+  - `Rodrigo Alanis`
+  - `Luz Adriana Calatrava`
+  - `Brenda Rodriguez`
+- estatus cerrados actuales:
+  - `Embarque Finalizado`
+  - `Entregado`
+  - `Embarque Cancelado`
+- prioridad:
+  - combina antiguedad del mes del codigo y dias abiertos desde `Fecha Creacion`
+  - un embarque vivo de febrero debe subir por encima de uno equivalente de marzo
+
+### Reglas de fechas vigentes
+
+- el parser de fechas prioriza el formato regional del Excel `dd/mm/yyyy` y variantes con hora
+- la UI usa el mismo parser que la logica de `Dias abiertos` y `Prioridad`
+
+### Archivos y responsabilidad actual
+
+- [index.html](C:\Users\Miguel Lomeli\OneDrive - Multitraslados Internacionales SA de CV\Documentos\New project\index.html): estructura unica de la pagina, hero, metricas, filtros, tabs e intros
+- [styles.css](C:\Users\Miguel Lomeli\OneDrive - Multitraslados Internacionales SA de CV\Documentos\New project\styles.css): sistema visual, layout, tablas, desgloses y detalle por cliente
+- [app.js](C:\Users\Miguel Lomeli\OneDrive - Multitraslados Internacionales SA de CV\Documentos\New project\app.js): importacion Excel, merge, persistencia, prioridad, clientes, filtros y render
+- [README.md](C:\Users\Miguel Lomeli\OneDrive - Multitraslados Internacionales SA de CV\Documentos\New project\README.md): guia corta de uso y despliegue
+- [CODEX.md](C:\Users\Miguel Lomeli\OneDrive - Multitraslados Internacionales SA de CV\Documentos\New project\CODEX.md): memoria viva del proyecto
+
+### Pendientes probables
+
+- afinar mejor la definicion de embarques vivos si aparecen mas estatus de cierre
+- agregar metricas mas ricas por cliente o servicio
+- limpiar el bloque oculto viejo de detalle de cliente que sigue en `index.html`
+- mejorar mensajes de exito y errores al importar
+
 ## Objetivo del proyecto
 
 Construir un dashboard operativo en GitHub Pages para visualizar embarques del equipo de Miguel a partir de archivos Excel que se cargan manualmente.
