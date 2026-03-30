@@ -539,7 +539,6 @@ function renderShipmentTable(shipments) {
         </td>
         <td>
           <div class="priority-stack">
-            <span class="priority-value">${Math.round(getPriorityScore(shipment))}</span>
             <span class="priority-label">${getPriorityLabel(shipment)}</span>
           </div>
         </td>
@@ -723,7 +722,6 @@ function buildClientDetailMarkup(shipments, clientName) {
               <span class="shipment-client">${shipment.descripcionClasificacion || shipment.prefijo || "-"}</span>
             </div>
             <div class="priority-stack">
-              <span class="priority-value">${Math.round(getPriorityScore(shipment))}</span>
               <span class="priority-label">${getPriorityLabel(shipment)}</span>
             </div>
           </div>

@@ -65,7 +65,7 @@ Nota:
 - muestra solo embarques vivos
 - usa el mes derivado del codigo para saber de que mes es el embarque
 - usa `Fecha Creacion` para calcular cuantos dias lleva abierto
-- muestra score numerico y nivel `Alta`, `Media` o `Baja`
+- muestra solo el nivel `Alta`, `Media` o `Baja`; el score numerico queda interno en la logica
 
 Columnas activas:
 
