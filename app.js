@@ -626,6 +626,7 @@ function renderClientTable(clientRows, shipments) {
   refs.priorityIntro.hidden = true;
   refs.clientsIntro.hidden = false;
   refs.tableTitle.textContent = "Clientes";
+  refs.clientDetailPanel.hidden = true;
   refs.shipmentsTableHead.innerHTML = `
     <tr>
       <th>Cliente</th>
@@ -682,72 +683,108 @@ function renderClientTable(clientRows, shipments) {
       renderClientTable(clientRows, shipments);
     });
     refs.shipmentsTableBody.append(tr);
-  });
 
-  renderClientDetail(shipments);
+    if (state.selectedClient === row.cliente) {
+      const detailRow = document.createElement("tr");
+      detailRow.className = "inline-detail-row";
+      detailRow.innerHTML = `
+        <td colspan="7">
+          ${buildClientDetailMarkup(shipments, row.cliente)}
+        </td>
+      `;
+      refs.shipmentsTableBody.append(detailRow);
+    }
+  });
 }
 
-function renderClientDetail(shipments) {
-  if (!state.selectedClient) {
-    refs.clientDetailPanel.hidden = true;
-    refs.clientDetailBody.innerHTML = "";
-    return;
-  }
-
+function buildClientDetailMarkup(shipments, clientName) {
   const clientShipments = shipments
-    .filter((shipment) => (shipment.cliente || "Cliente no disponible") === state.selectedClient)
+    .filter((shipment) => (shipment.cliente || "Cliente no disponible") === clientName)
     .sort(comparePriorityShipments);
 
-  refs.clientDetailPanel.hidden = false;
-  refs.clientDetailTitle.textContent = state.selectedClient;
-  refs.clientDetailSummary.textContent = `${clientShipments.length} embarques del cliente dentro de los filtros actuales.`;
-  refs.clientMetricLive.textContent = clientShipments.filter(isLiveShipment).length;
-  refs.clientMetricHigh.textContent = clientShipments.filter((shipment) => getPriorityLabel(shipment) === "Alta").length;
-  refs.clientMetricAge.textContent = `${getAverageOpenAge(clientShipments)} dias`;
-  refs.clientMetricService.textContent = getDominantServiceForShipments(clientShipments);
-  renderBreakdownList(
-    refs.clientMonthBreakdown,
+  const monthBreakdown = renderBreakdownMarkup(
     countByLabel(clientShipments.map((shipment) => formatMonthLabel(shipment.mesEmbarque))),
     "Sin mes",
     true,
   );
-  renderBreakdownList(
-    refs.clientStatusBreakdown,
+  const statusBreakdown = renderBreakdownMarkup(
     countBy(clientShipments, "estatus"),
     "Sin estatus",
     false,
   );
-  refs.clientDetailBody.innerHTML = "";
 
-  if (!clientShipments.length) {
-    refs.clientDetailBody.innerHTML = `<tr><td class="empty-state" colspan="8">No hay embarques visibles para este cliente.</td></tr>`;
-    return;
-  }
+  const rowsMarkup = clientShipments.length
+    ? clientShipments.map((shipment) => `
+        <tr>
+          <td>
+            <div class="shipment-cell">
+              <span class="shipment-code">${shipment.codigoEmbarque}</span>
+              <span class="shipment-client">${shipment.descripcionClasificacion || shipment.prefijo || "-"}</span>
+            </div>
+          </td>
+          <td><div class="secondary-cell">${formatMonthLabel(shipment.mesEmbarque)}</div></td>
+          <td><span class="pill${isLiveShipment(shipment) ? " live" : ""}">${shipment.estatus || "Sin estatus"}</span></td>
+          <td><div class="secondary-cell">${shipment.tipoServicio || "-"}</div></td>
+          <td><div class="secondary-cell">${shipment.creadoPor || "-"}</div></td>
+          <td><div class="secondary-cell">${formatDateTime(shipment.fechaCreacion)}</div></td>
+          <td><div class="secondary-cell">${getOpenAgeDays(shipment)} dias</div></td>
+          <td>
+            <div class="priority-stack">
+              <span class="priority-value">${Math.round(getPriorityScore(shipment))}</span>
+              <span class="priority-label">${getPriorityLabel(shipment)}</span>
+            </div>
+          </td>
+        </tr>
+      `).join("")
+    : `<tr><td class="empty-state" colspan="8">No hay embarques visibles para este cliente.</td></tr>`;
 
-  clientShipments.forEach((shipment) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>
-        <div class="shipment-cell">
-          <span class="shipment-code">${shipment.codigoEmbarque}</span>
-          <span class="shipment-client">${shipment.descripcionClasificacion || shipment.prefijo || "-"}</span>
+  return `
+    <section class="client-detail-card">
+      <div class="panel-head">
+        <h2>${clientName}</h2>
+        <p>${clientShipments.length} embarques del cliente dentro de los filtros actuales.</p>
+      </div>
+      <div class="client-detail-metrics">
+        <article class="mini-metric"><p>Embarques vivos</p><strong>${clientShipments.filter(isLiveShipment).length}</strong></article>
+        <article class="mini-metric"><p>Prioridad alta</p><strong>${clientShipments.filter((shipment) => getPriorityLabel(shipment) === "Alta").length}</strong></article>
+        <article class="mini-metric"><p>Edad promedio</p><strong>${getAverageOpenAge(clientShipments)} dias</strong></article>
+        <article class="mini-metric"><p>Servicio dominante</p><strong>${getDominantServiceForShipments(clientShipments)}</strong></article>
+      </div>
+      <div class="client-detail-breakdowns">
+        <div class="client-detail-breakdown">
+          <div class="panel-head">
+            <h2>Desglose por mes</h2>
+            <p>Distribucion de embarques visibles para este cliente segun el mes del codigo.</p>
+          </div>
+          <div class="breakdown-list">${monthBreakdown}</div>
         </div>
-      </td>
-      <td><div class="secondary-cell">${formatMonthLabel(shipment.mesEmbarque)}</div></td>
-      <td><span class="pill${isLiveShipment(shipment) ? " live" : ""}">${shipment.estatus || "Sin estatus"}</span></td>
-      <td><div class="secondary-cell">${shipment.tipoServicio || "-"}</div></td>
-      <td><div class="secondary-cell">${shipment.creadoPor || "-"}</div></td>
-      <td><div class="secondary-cell">${formatDateTime(shipment.fechaCreacion)}</div></td>
-      <td><div class="secondary-cell">${getOpenAgeDays(shipment)} dias</div></td>
-      <td>
-        <div class="priority-stack">
-          <span class="priority-value">${Math.round(getPriorityScore(shipment))}</span>
-          <span class="priority-label">${getPriorityLabel(shipment)}</span>
+        <div class="client-detail-breakdown">
+          <div class="panel-head">
+            <h2>Desglose por estatus</h2>
+            <p>Etapa operativa actual de los embarques visibles para este cliente.</p>
+          </div>
+          <div class="breakdown-list">${statusBreakdown}</div>
         </div>
-      </td>
-    `;
-    refs.clientDetailBody.append(tr);
-  });
+      </div>
+      <div class="table-wrap detail-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Embarque</th>
+              <th>Mes</th>
+              <th>Estatus</th>
+              <th>Servicio</th>
+              <th>Creado por</th>
+              <th>Fecha creacion</th>
+              <th>Dias abiertos</th>
+              <th>Prioridad</th>
+            </tr>
+          </thead>
+          <tbody>${rowsMarkup}</tbody>
+        </table>
+      </div>
+    </section>
+  `;
 }
 
 function getAverageOpenAge(shipments) {
@@ -801,6 +838,34 @@ function countByLabel(labels) {
   return Array.from(counts.entries())
     .map(([label, count]) => ({ label, count }))
     .sort((a, b) => b.count - a.count);
+}
+
+function renderBreakdownMarkup(entries, fallbackLabel, serviceMode) {
+  if (!entries.length) {
+    return `<p class="empty-state">No hay datos para esta vista.</p>`;
+  }
+
+  const maxValue = entries[0].count;
+  const total = entries.reduce((sum, entry) => sum + entry.count, 0);
+
+  return entries.map((entry) => {
+    const width = maxValue > 0 ? (entry.count / maxValue) * 100 : 0;
+    const percent = total > 0 ? Math.round((entry.count / total) * 100) : 0;
+    return `
+      <article class="breakdown-item">
+        <div class="breakdown-label">
+          <strong>${entry.label || fallbackLabel}</strong>
+          <div class="bar-track">
+            <div class="bar-fill${serviceMode ? " service-fill" : ""}" style="width: ${width}%"></div>
+          </div>
+        </div>
+        <div class="breakdown-meta">
+          <strong>${entry.count}</strong>
+          <span class="breakdown-percent">${percent}%</span>
+        </div>
+      </article>
+    `;
+  }).join("");
 }
 
 function getShipmentPrefix(code) {
