@@ -324,13 +324,28 @@ Antes de empezar trabajo nuevo en este proyecto:
 
 Cambios funcionales agregados despues de la primera version:
 
+- Se agrego una pestaña `Clientes`.
+- La vista `Clientes` resume operaciones por cuenta sin reemplazar la vista por embarque.
+- En esta primera entrega, `Clientes` incluye:
+  - ranking de clientes por embarques vivos
+  - ranking de clientes por prioridad alta
+  - tabla resumen por cliente con total, vivos, prioridad alta, edad promedio y servicio dominante
+- La tabla de `Clientes` ya permite hacer clic sobre un cliente para abrir abajo el detalle de sus embarques dentro de los filtros actuales.
+- El detalle de cliente ya incluye metricas rapidas propias:
+  - embarques vivos
+  - prioridad alta
+  - edad promedio
+  - servicio dominante
+- El detalle de cliente tambien incluye un desglose por mes para ver en que periodos se concentra la carga del cliente.
+- El detalle de cliente tambien incluye un desglose por estatus para ver en que etapa operativa esta su carga.
 - La tabla principal ya no muestra `PRO` ni `AWB`.
 - Ahora el `Cliente` debe verse junto al `Codigo de Embarque`.
 - Se agrego una pestaña `Prioridad`.
 - La pestaña `Prioridad` muestra solo embarques vivos y los ordena por una combinacion de:
   - antiguedad del mes del embarque
-  - dias transcurridos desde el ultimo cambio de estatus observado en las cargas
-- Para soportar ese reporte, la app conserva `statusLastChangedAt` por embarque sin guardar historial completo de eventos.
+  - dias transcurridos desde la `Fecha Creación`
+- El mes del embarque en `Prioridad` sigue saliendo del codigo del embarque, no de la fecha de creacion.
+- Para soportar otras vistas, la app aun conserva `statusLastChangedAt`, pero `Prioridad` ya no depende de ese dato.
 - La pestaña `Prioridad` ahora incluye una explicacion visual arriba de la tabla.
 - La prioridad ya no se muestra solo como numero; tambien usa niveles `Alta`, `Media` y `Baja`.
 - La tabla fue rediseñada para que la informacion respire mas:
@@ -347,6 +362,8 @@ Cambios funcionales agregados despues de la primera version:
   - color sutil por tipo de dato
   - etiqueta secundaria por tarjeta
   - acentos visuales circulares suaves
+- El encabezado principal se simplifico a `Loadboard Multi / agentes`.
+- Los desgloses del detalle de cliente ahora muestran conteo y porcentaje para comparar mas rapido.
 
 Recordatorio de criterio actual:
 

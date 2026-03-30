@@ -15,13 +15,8 @@
       <div class="hero-copy">
         <p class="eyebrow">Dashboard Operativo</p>
         <div class="hero-heading">
-          <h1>Embarques vivos de tu equipo</h1>
-          <p class="hero-kicker">Carga operativa filtrada, actualizada y agrupada por mes.</p>
+          <h1>Loadboard Multi / agentes</h1>
         </div>
-        <p class="hero-text">
-          Sube el Excel mas reciente, actualiza estatus por <strong>Codigo de Embarque</strong> y conserva los registros
-          aunque desaparezcan del archivo nuevo.
-        </p>
       </div>
 
       <section class="upload-card">
@@ -40,40 +35,40 @@
       <section class="content-panel">
         <div class="metrics-grid">
           <article class="metric-card total">
-            <p>Total visibles</p>
+            <p id="metricOneLabel">Total visibles</p>
             <strong id="totalVisibleMetric">0</strong>
-            <div class="metric-meta"><span class="metric-dot"></span><span>Base filtrada actual</span></div>
+            <div class="metric-meta"><span class="metric-dot"></span><span id="metricOneMeta">Base filtrada actual</span></div>
           </article>
           <article class="metric-card live">
-            <p>Vivos</p>
+            <p id="metricTwoLabel">Vivos</p>
             <strong id="liveMetric">0</strong>
-            <div class="metric-meta"><span class="metric-dot"></span><span>Seguimiento activo</span></div>
+            <div class="metric-meta"><span class="metric-dot"></span><span id="metricTwoMeta">Seguimiento activo</span></div>
           </article>
           <article class="metric-card missing">
-            <p>No vienen en ultima carga</p>
+            <p id="metricThreeLabel">No vienen en ultima carga</p>
             <strong id="missingMetric">0</strong>
-            <div class="metric-meta"><span class="metric-dot"></span><span>Casos a revisar</span></div>
+            <div class="metric-meta"><span class="metric-dot"></span><span id="metricThreeMeta">Casos a revisar</span></div>
           </article>
           <article class="metric-card months">
-            <p>Meses activos</p>
+            <p id="metricFourLabel">Meses activos</p>
             <strong id="monthsMetric">0</strong>
-            <div class="metric-meta"><span class="metric-dot"></span><span>Ventanas detectadas</span></div>
+            <div class="metric-meta"><span class="metric-dot"></span><span id="metricFourMeta">Ventanas detectadas</span></div>
           </article>
         </div>
 
         <div class="insight-grid">
           <section class="insight-card">
             <div class="panel-head">
-              <h2>Por estatus</h2>
-              <p>Conteo de embarques visibles.</p>
+              <h2 id="insightOneTitle">Por estatus</h2>
+              <p id="insightOneDescription">Conteo de embarques visibles.</p>
             </div>
             <div id="statusBreakdown" class="breakdown-list"></div>
           </section>
 
           <section class="insight-card">
             <div class="panel-head">
-              <h2>Por servicio</h2>
-              <p>Clasificado por nomenclatura del codigo.</p>
+              <h2 id="insightTwoTitle">Por servicio</h2>
+              <p id="insightTwoDescription">Clasificado por nomenclatura del codigo.</p>
             </div>
             <div id="serviceBreakdown" class="breakdown-list"></div>
           </section>
@@ -131,13 +126,18 @@
 
         <section class="table-card">
           <div class="panel-head">
-            <h2>Embarques</h2>
+            <h2 id="tableTitle">Embarques</h2>
             <p id="tableSummary">Sin registros cargados.</p>
           </div>
 
           <div id="priorityIntro" class="priority-intro" hidden>
             <strong>Reporte de prioridad</strong>
-            <p>Esta vista resalta embarques vivos que merecen seguimiento primero: meses mas viejos y estatus que llevan mas tiempo sin cambio.</p>
+            <p>Esta vista resalta embarques vivos que merecen seguimiento primero: meses mas viejos y servicios que llevan mas dias abiertos desde su fecha de creacion.</p>
+          </div>
+
+          <div id="clientsIntro" class="priority-intro" hidden>
+            <strong>Reporte por cliente</strong>
+            <p>Esta vista resume la carga operativa por cuenta: volumen, vivos, prioridad alta, antiguedad promedio y servicio dominante.</p>
           </div>
 
           <div class="table-wrap">
@@ -146,6 +146,68 @@
               <tbody id="shipmentsTableBody"></tbody>
             </table>
           </div>
+
+          <section id="clientDetailPanel" class="client-detail-card" hidden>
+            <div class="panel-head">
+              <h2 id="clientDetailTitle">Detalle de cliente</h2>
+              <p id="clientDetailSummary">Selecciona un cliente para ver sus embarques.</p>
+            </div>
+
+            <div class="client-detail-metrics">
+              <article class="mini-metric">
+                <p>Embarques vivos</p>
+                <strong id="clientMetricLive">0</strong>
+              </article>
+              <article class="mini-metric">
+                <p>Prioridad alta</p>
+                <strong id="clientMetricHigh">0</strong>
+              </article>
+              <article class="mini-metric">
+                <p>Edad promedio</p>
+                <strong id="clientMetricAge">0</strong>
+              </article>
+              <article class="mini-metric">
+                <p>Servicio dominante</p>
+                <strong id="clientMetricService">-</strong>
+              </article>
+            </div>
+
+            <div class="client-detail-breakdowns">
+              <div class="client-detail-breakdown">
+                <div class="panel-head">
+                  <h2>Desglose por mes</h2>
+                  <p>Distribucion de embarques visibles para este cliente segun el mes del codigo.</p>
+                </div>
+                <div id="clientMonthBreakdown" class="breakdown-list"></div>
+              </div>
+
+              <div class="client-detail-breakdown">
+                <div class="panel-head">
+                  <h2>Desglose por estatus</h2>
+                  <p>Etapa operativa actual de los embarques visibles para este cliente.</p>
+                </div>
+                <div id="clientStatusBreakdown" class="breakdown-list"></div>
+              </div>
+            </div>
+
+            <div class="table-wrap detail-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Embarque</th>
+                    <th>Mes</th>
+                    <th>Estatus</th>
+                    <th>Servicio</th>
+                    <th>Creado por</th>
+                    <th>Fecha creacion</th>
+                    <th>Dias abiertos</th>
+                    <th>Prioridad</th>
+                  </tr>
+                </thead>
+                <tbody id="clientDetailBody"></tbody>
+              </table>
+            </div>
+          </section>
         </section>
       </section>
     </main>

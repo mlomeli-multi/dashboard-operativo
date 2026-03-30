@@ -50,6 +50,7 @@ const NOMENCLATURES = {
 const state = {
   shipments: [],
   activeTab: "general",
+  selectedClient: null,
   filters: {
     search: "",
     status: "all",
@@ -70,16 +71,40 @@ const refs = {
   serviceFilter: document.querySelector("#serviceFilter"),
   liveOnlyToggle: document.querySelector("#liveOnlyToggle"),
   missingOnlyToggle: document.querySelector("#missingOnlyToggle"),
+  metricOneLabel: document.querySelector("#metricOneLabel"),
+  metricTwoLabel: document.querySelector("#metricTwoLabel"),
+  metricThreeLabel: document.querySelector("#metricThreeLabel"),
+  metricFourLabel: document.querySelector("#metricFourLabel"),
+  metricOneMeta: document.querySelector("#metricOneMeta"),
+  metricTwoMeta: document.querySelector("#metricTwoMeta"),
+  metricThreeMeta: document.querySelector("#metricThreeMeta"),
+  metricFourMeta: document.querySelector("#metricFourMeta"),
   totalVisibleMetric: document.querySelector("#totalVisibleMetric"),
   liveMetric: document.querySelector("#liveMetric"),
   missingMetric: document.querySelector("#missingMetric"),
   monthsMetric: document.querySelector("#monthsMetric"),
+  insightOneTitle: document.querySelector("#insightOneTitle"),
+  insightOneDescription: document.querySelector("#insightOneDescription"),
+  insightTwoTitle: document.querySelector("#insightTwoTitle"),
+  insightTwoDescription: document.querySelector("#insightTwoDescription"),
   statusBreakdown: document.querySelector("#statusBreakdown"),
   serviceBreakdown: document.querySelector("#serviceBreakdown"),
+  clientsIntro: document.querySelector("#clientsIntro"),
   priorityIntro: document.querySelector("#priorityIntro"),
+  tableTitle: document.querySelector("#tableTitle"),
   shipmentsTableHead: document.querySelector("#shipmentsTableHead"),
   shipmentsTableBody: document.querySelector("#shipmentsTableBody"),
   tableSummary: document.querySelector("#tableSummary"),
+  clientDetailPanel: document.querySelector("#clientDetailPanel"),
+  clientDetailTitle: document.querySelector("#clientDetailTitle"),
+  clientDetailSummary: document.querySelector("#clientDetailSummary"),
+  clientMetricLive: document.querySelector("#clientMetricLive"),
+  clientMetricHigh: document.querySelector("#clientMetricHigh"),
+  clientMetricAge: document.querySelector("#clientMetricAge"),
+  clientMetricService: document.querySelector("#clientMetricService"),
+  clientMonthBreakdown: document.querySelector("#clientMonthBreakdown"),
+  clientStatusBreakdown: document.querySelector("#clientStatusBreakdown"),
+  clientDetailBody: document.querySelector("#clientDetailBody"),
 };
 
 bootstrap();
@@ -232,6 +257,7 @@ function normalizeRow(row, uploadTag) {
     codigoCotizacion: toText(normalizedRow.codigo_de_cotizacion),
     estatus: toText(normalizedRow.estatus),
     cliente: toText(normalizedRow.cliente),
+    fechaCreacion: toText(normalizedRow.fecha_creacion),
     creadoPor,
     ejecutivoOperaciones: toText(normalizedRow.ejecutivo_de_operaciones),
     ejecutivoVentas: toText(normalizedRow.ejecutivo_de_ventas),
@@ -278,14 +304,22 @@ function populateSelect(select, values, allLabel) {
 function render() {
   renderTabs();
   const filteredShipments = getFilteredShipments();
-  renderMetrics(filteredShipments);
-  renderBreakdowns(filteredShipments);
-  renderTable(filteredShipments);
+  if (state.activeTab === "clients") {
+    const clientRows = aggregateClients(filteredShipments);
+    renderClientMetrics(clientRows);
+    renderClientBreakdowns(clientRows);
+    renderClientTable(clientRows, filteredShipments);
+    return;
+  }
+
+  renderShipmentMetrics(filteredShipments);
+  renderShipmentBreakdowns(filteredShipments);
+  renderShipmentTable(filteredShipments);
 }
 
 function getFilteredShipments() {
   return state.shipments.filter((shipment) => {
-    if (state.activeTab !== "general" && state.activeTab !== "priority" && shipment.mesEmbarque !== state.activeTab) {
+    if (!["general", "priority", "clients"].includes(state.activeTab) && shipment.mesEmbarque !== state.activeTab) {
       return false;
     }
 
@@ -336,12 +370,12 @@ function renderTabs() {
       .filter(Boolean),
   ).sort();
 
-  if (state.activeTab !== "general" && state.activeTab !== "priority" && !months.includes(state.activeTab)) {
+  if (!["general", "priority", "clients"].includes(state.activeTab) && !months.includes(state.activeTab)) {
     state.activeTab = "general";
   }
 
   refs.monthTabs.innerHTML = "";
-  const allTabs = ["priority", "general", ...months];
+  const allTabs = ["clients", "priority", "general", ...months];
 
   allTabs.forEach((tabKey) => {
     const button = document.createElement("button");
@@ -387,11 +421,13 @@ function renderBreakdownList(container, entries, fallbackLabel, serviceMode) {
   }
 
   const maxValue = entries[0].count;
+  const total = entries.reduce((sum, entry) => sum + entry.count, 0);
 
   entries.forEach((entry) => {
     const item = document.createElement("article");
     item.className = "breakdown-item";
     const width = maxValue > 0 ? (entry.count / maxValue) * 100 : 0;
+    const percent = total > 0 ? Math.round((entry.count / total) * 100) : 0;
 
     item.innerHTML = `
       <div class="breakdown-label">
@@ -400,20 +436,49 @@ function renderBreakdownList(container, entries, fallbackLabel, serviceMode) {
           <div class="bar-fill${serviceMode ? " service-fill" : ""}" style="width: ${width}%"></div>
         </div>
       </div>
-      <strong>${entry.count}</strong>
+      <div class="breakdown-meta">
+        <strong>${entry.count}</strong>
+        <span class="breakdown-percent">${percent}%</span>
+      </div>
     `;
 
     container.append(item);
   });
 }
 
-function renderTable(shipments) {
+function renderShipmentMetrics(shipments) {
+  refs.metricOneLabel.textContent = "Total visibles";
+  refs.metricOneMeta.textContent = "Base filtrada actual";
+  refs.metricTwoLabel.textContent = "Vivos";
+  refs.metricTwoMeta.textContent = "Seguimiento activo";
+  refs.metricThreeLabel.textContent = "No vienen en ultima carga";
+  refs.metricThreeMeta.textContent = "Casos a revisar";
+  refs.metricFourLabel.textContent = "Meses activos";
+  refs.metricFourMeta.textContent = "Ventanas detectadas";
+
+  renderMetrics(shipments);
+}
+
+function renderShipmentBreakdowns(shipments) {
+  refs.insightOneTitle.textContent = "Por estatus";
+  refs.insightOneDescription.textContent = "Conteo de embarques visibles.";
+  refs.insightTwoTitle.textContent = "Por servicio";
+  refs.insightTwoDescription.textContent = "Clasificado por nomenclatura del codigo.";
+
+  renderBreakdowns(shipments);
+}
+
+function renderShipmentTable(shipments) {
   const orderedShipments = state.activeTab === "priority"
     ? [...shipments].sort(comparePriorityShipments)
     : shipments;
 
   refs.shipmentsTableBody.innerHTML = "";
+  refs.clientDetailPanel.hidden = true;
+  refs.clientDetailBody.innerHTML = "";
   refs.priorityIntro.hidden = state.activeTab !== "priority";
+  refs.clientsIntro.hidden = true;
+  refs.tableTitle.textContent = "Embarques";
   refs.shipmentsTableHead.innerHTML = state.activeTab === "priority"
     ? `
       <tr>
@@ -422,8 +487,8 @@ function renderTable(shipments) {
         <th>Estatus</th>
         <th>Creado por</th>
         <th>Servicio</th>
-        <th>Ultimo cambio</th>
-        <th>Dias sin cambio</th>
+        <th>Fecha creacion</th>
+        <th>Dias abiertos</th>
         <th>Prioridad</th>
       </tr>
     `
@@ -462,14 +527,14 @@ function renderTable(shipments) {
         <td><div class="secondary-cell">${shipment.tipoServicio || "-"}</div></td>
         <td>
           <div class="secondary-cell">
-            ${formatDateTime(shipment.statusLastChangedAt || shipment.firstSeenAt || shipment.updatedAt)}
-            <small>Ultimo movimiento detectado</small>
+            ${formatDateTime(shipment.fechaCreacion)}
+            <small>Inicio del servicio</small>
           </div>
         </td>
         <td>
           <div class="secondary-cell">
-            ${getStatusAgeDays(shipment)} dias
-            <small>Sin cambio de estatus</small>
+            ${getOpenAgeDays(shipment)} dias
+            <small>Sin entregar o finalizar</small>
           </div>
         </td>
         <td>
@@ -509,6 +574,201 @@ function renderTable(shipments) {
   });
 }
 
+function renderClientMetrics(clientRows) {
+  refs.metricOneLabel.textContent = "Clientes visibles";
+  refs.metricOneMeta.textContent = "Cuentas filtradas";
+  refs.metricTwoLabel.textContent = "Con embarques vivos";
+  refs.metricTwoMeta.textContent = "Clientes activos";
+  refs.metricThreeLabel.textContent = "Con prioridad alta";
+  refs.metricThreeMeta.textContent = "Seguimiento urgente";
+  refs.metricFourLabel.textContent = "Edad promedio";
+  refs.metricFourMeta.textContent = "Dias abiertos";
+
+  refs.totalVisibleMetric.textContent = clientRows.length;
+  refs.liveMetric.textContent = clientRows.filter((row) => row.vivos > 0).length;
+  refs.missingMetric.textContent = clientRows.filter((row) => row.prioridadAlta > 0).length;
+  refs.monthsMetric.textContent = clientRows.length
+    ? Math.round(clientRows.reduce((sum, row) => sum + row.edadPromedio, 0) / clientRows.length)
+    : 0;
+}
+
+function renderClientBreakdowns(clientRows) {
+  refs.insightOneTitle.textContent = "Top clientes por vivos";
+  refs.insightOneDescription.textContent = "Clientes con mas embarques activos en la vista actual.";
+  refs.insightTwoTitle.textContent = "Top clientes por prioridad alta";
+  refs.insightTwoDescription.textContent = "Clientes con mas embarques que requieren seguimiento urgente.";
+
+  renderBreakdownList(
+    refs.statusBreakdown,
+    clientRows
+      .filter((row) => row.vivos > 0)
+      .sort((a, b) => b.vivos - a.vivos)
+      .slice(0, 8)
+      .map((row) => ({ label: row.cliente, count: row.vivos })),
+    "Sin cliente",
+    false,
+  );
+  renderBreakdownList(
+    refs.serviceBreakdown,
+    clientRows
+      .filter((row) => row.prioridadAlta > 0)
+      .sort((a, b) => b.prioridadAlta - a.prioridadAlta)
+      .slice(0, 8)
+      .map((row) => ({ label: row.cliente, count: row.prioridadAlta })),
+    "Sin cliente",
+    true,
+  );
+}
+
+function renderClientTable(clientRows, shipments) {
+  const orderedRows = [...clientRows].sort(compareClientRows);
+  refs.shipmentsTableBody.innerHTML = "";
+  refs.priorityIntro.hidden = true;
+  refs.clientsIntro.hidden = false;
+  refs.tableTitle.textContent = "Clientes";
+  refs.shipmentsTableHead.innerHTML = `
+    <tr>
+      <th>Cliente</th>
+      <th>Total</th>
+      <th>Vivos</th>
+      <th>Prioridad alta</th>
+      <th>Edad promedio</th>
+      <th>Servicio dominante</th>
+      <th>Meses presentes</th>
+    </tr>
+  `;
+  refs.tableSummary.textContent = `${orderedRows.length} clientes resumidos a partir de los embarques filtrados.`;
+
+  if (!orderedRows.length) {
+    refs.shipmentsTableBody.innerHTML = `<tr><td class="empty-state" colspan="7">No hay clientes que cumplan con los filtros actuales.</td></tr>`;
+    refs.clientDetailPanel.hidden = true;
+    refs.clientDetailBody.innerHTML = "";
+    return;
+  }
+
+  if (state.selectedClient && !orderedRows.some((row) => row.cliente === state.selectedClient)) {
+    state.selectedClient = null;
+  }
+
+  orderedRows.forEach((row) => {
+    const tr = document.createElement("tr");
+    tr.className = `row-button${state.selectedClient === row.cliente ? " active-row" : ""}`;
+    tr.innerHTML = `
+      <td>
+        <div class="shipment-cell">
+          <span class="shipment-code">${row.cliente}</span>
+          <span class="shipment-client">${row.vivos} vivos de ${row.total} embarques</span>
+        </div>
+      </td>
+      <td><div class="secondary-cell">${row.total}</div></td>
+      <td><div class="secondary-cell">${row.vivos}</div></td>
+      <td>
+        <div class="secondary-cell">
+          ${row.prioridadAlta}
+          <small>${row.prioridadMedia} media / ${row.prioridadBaja} baja</small>
+        </div>
+      </td>
+      <td>
+        <div class="secondary-cell">
+          ${row.edadPromedio} dias
+          <small>Promedio de embarques vivos</small>
+        </div>
+      </td>
+      <td><div class="secondary-cell">${row.servicioDominante}</div></td>
+      <td><div class="secondary-cell">${row.meses.join(", ") || "-"}</div></td>
+    `;
+    tr.addEventListener("click", () => {
+      state.selectedClient = state.selectedClient === row.cliente ? null : row.cliente;
+      renderClientTable(clientRows, shipments);
+    });
+    refs.shipmentsTableBody.append(tr);
+  });
+
+  renderClientDetail(shipments);
+}
+
+function renderClientDetail(shipments) {
+  if (!state.selectedClient) {
+    refs.clientDetailPanel.hidden = true;
+    refs.clientDetailBody.innerHTML = "";
+    return;
+  }
+
+  const clientShipments = shipments
+    .filter((shipment) => (shipment.cliente || "Cliente no disponible") === state.selectedClient)
+    .sort(comparePriorityShipments);
+
+  refs.clientDetailPanel.hidden = false;
+  refs.clientDetailTitle.textContent = state.selectedClient;
+  refs.clientDetailSummary.textContent = `${clientShipments.length} embarques del cliente dentro de los filtros actuales.`;
+  refs.clientMetricLive.textContent = clientShipments.filter(isLiveShipment).length;
+  refs.clientMetricHigh.textContent = clientShipments.filter((shipment) => getPriorityLabel(shipment) === "Alta").length;
+  refs.clientMetricAge.textContent = `${getAverageOpenAge(clientShipments)} dias`;
+  refs.clientMetricService.textContent = getDominantServiceForShipments(clientShipments);
+  renderBreakdownList(
+    refs.clientMonthBreakdown,
+    countByLabel(clientShipments.map((shipment) => formatMonthLabel(shipment.mesEmbarque))),
+    "Sin mes",
+    true,
+  );
+  renderBreakdownList(
+    refs.clientStatusBreakdown,
+    countBy(clientShipments, "estatus"),
+    "Sin estatus",
+    false,
+  );
+  refs.clientDetailBody.innerHTML = "";
+
+  if (!clientShipments.length) {
+    refs.clientDetailBody.innerHTML = `<tr><td class="empty-state" colspan="8">No hay embarques visibles para este cliente.</td></tr>`;
+    return;
+  }
+
+  clientShipments.forEach((shipment) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>
+        <div class="shipment-cell">
+          <span class="shipment-code">${shipment.codigoEmbarque}</span>
+          <span class="shipment-client">${shipment.descripcionClasificacion || shipment.prefijo || "-"}</span>
+        </div>
+      </td>
+      <td><div class="secondary-cell">${formatMonthLabel(shipment.mesEmbarque)}</div></td>
+      <td><span class="pill${isLiveShipment(shipment) ? " live" : ""}">${shipment.estatus || "Sin estatus"}</span></td>
+      <td><div class="secondary-cell">${shipment.tipoServicio || "-"}</div></td>
+      <td><div class="secondary-cell">${shipment.creadoPor || "-"}</div></td>
+      <td><div class="secondary-cell">${formatDateTime(shipment.fechaCreacion)}</div></td>
+      <td><div class="secondary-cell">${getOpenAgeDays(shipment)} dias</div></td>
+      <td>
+        <div class="priority-stack">
+          <span class="priority-value">${Math.round(getPriorityScore(shipment))}</span>
+          <span class="priority-label">${getPriorityLabel(shipment)}</span>
+        </div>
+      </td>
+    `;
+    refs.clientDetailBody.append(tr);
+  });
+}
+
+function getAverageOpenAge(shipments) {
+  const liveShipments = shipments.filter(isLiveShipment);
+  if (!liveShipments.length) {
+    return 0;
+  }
+
+  const total = liveShipments.reduce((sum, shipment) => sum + getOpenAgeDays(shipment), 0);
+  return Math.round(total / liveShipments.length);
+}
+
+function getDominantServiceForShipments(shipments) {
+  const counts = new Map();
+  shipments.forEach((shipment) => {
+    const key = shipment.tipoServicio || "Sin servicio";
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+  return getDominantLabel(counts);
+}
+
 function isLiveShipment(shipment) {
   return !CLOSED_STATUSES.has(shipment.estatus);
 }
@@ -530,11 +790,28 @@ function countBy(items, key) {
     .sort((a, b) => b.count - a.count);
 }
 
+function countByLabel(labels) {
+  const counts = new Map();
+
+  labels.forEach((label) => {
+    const key = label || "";
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+
+  return Array.from(counts.entries())
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
 function getShipmentPrefix(code) {
   return toText(code).split("-")[0] || "";
 }
 
 function getTabLabel(tabKey) {
+  if (tabKey === "clients") {
+    return "Clientes";
+  }
+
   if (tabKey === "priority") {
     return "Prioridad";
   }
@@ -544,6 +821,95 @@ function getTabLabel(tabKey) {
   }
 
   return formatMonthLabel(tabKey);
+}
+
+function aggregateClients(shipments) {
+  const clientMap = new Map();
+
+  shipments.forEach((shipment) => {
+    const cliente = shipment.cliente || "Cliente no disponible";
+    const existing = clientMap.get(cliente) || {
+      cliente,
+      total: 0,
+      vivos: 0,
+      prioridadAlta: 0,
+      prioridadMedia: 0,
+      prioridadBaja: 0,
+      totalEdad: 0,
+      conteoEdad: 0,
+      servicioCounts: new Map(),
+      mesesSet: new Set(),
+    };
+
+    existing.total += 1;
+    existing.mesesSet.add(shipment.mesEmbarque || "Sin mes");
+    existing.servicioCounts.set(
+      shipment.tipoServicio || "Sin servicio",
+      (existing.servicioCounts.get(shipment.tipoServicio || "Sin servicio") || 0) + 1,
+    );
+
+    if (isLiveShipment(shipment)) {
+      const priorityLabel = getPriorityLabel(shipment);
+      existing.vivos += 1;
+      existing.totalEdad += getOpenAgeDays(shipment);
+      existing.conteoEdad += 1;
+
+      if (priorityLabel === "Alta") {
+        existing.prioridadAlta += 1;
+      } else if (priorityLabel === "Media") {
+        existing.prioridadMedia += 1;
+      } else {
+        existing.prioridadBaja += 1;
+      }
+    }
+
+    clientMap.set(cliente, existing);
+  });
+
+  return Array.from(clientMap.values()).map((row) => ({
+    cliente: row.cliente,
+    total: row.total,
+    vivos: row.vivos,
+    prioridadAlta: row.prioridadAlta,
+    prioridadMedia: row.prioridadMedia,
+    prioridadBaja: row.prioridadBaja,
+    edadPromedio: row.conteoEdad ? Math.round(row.totalEdad / row.conteoEdad) : 0,
+    servicioDominante: getDominantLabel(row.servicioCounts),
+    meses: Array.from(row.mesesSet).sort(compareMonthKeys).map(formatMonthLabel),
+  }));
+}
+
+function getDominantLabel(countsMap) {
+  const entries = Array.from(countsMap.entries()).sort((a, b) => b[1] - a[1]);
+  return entries.length ? entries[0][0] : "Sin servicio";
+}
+
+function compareClientRows(a, b) {
+  if (b.prioridadAlta !== a.prioridadAlta) {
+    return b.prioridadAlta - a.prioridadAlta;
+  }
+
+  if (b.vivos !== a.vivos) {
+    return b.vivos - a.vivos;
+  }
+
+  if (b.edadPromedio !== a.edadPromedio) {
+    return b.edadPromedio - a.edadPromedio;
+  }
+
+  return a.cliente.localeCompare(b.cliente);
+}
+
+function compareMonthKeys(a, b) {
+  if (a === "Sin mes") {
+    return 1;
+  }
+
+  if (b === "Sin mes") {
+    return -1;
+  }
+
+  return a.localeCompare(b);
 }
 
 function normalizeRowKeys(row) {
@@ -575,7 +941,7 @@ function getMonthFromCode(code) {
 
 function getTableSummary(shipments) {
   if (state.activeTab === "priority") {
-    return `${shipments.length} embarques vivos ordenados por antiguedad y tiempo sin cambio de estatus.`;
+    return `${shipments.length} embarques vivos ordenados por mes del embarque y dias abiertos desde su fecha de creacion.`;
   }
 
   return `${shipments.length} embarques visibles en ${state.activeTab === "general" ? "la vista general" : formatMonthLabel(state.activeTab)}.`;
@@ -587,7 +953,7 @@ function comparePriorityShipments(a, b) {
     return scoreDiff;
   }
 
-  const ageDiff = getStatusAgeDays(b) - getStatusAgeDays(a);
+  const ageDiff = getOpenAgeDays(b) - getOpenAgeDays(a);
   if (ageDiff !== 0) {
     return ageDiff;
   }
@@ -596,7 +962,7 @@ function comparePriorityShipments(a, b) {
 }
 
 function getPriorityScore(shipment) {
-  return (getShipmentMonthAgeDays(shipment) * 2) + getStatusAgeDays(shipment);
+  return (getShipmentMonthAgeDays(shipment) * 2) + getOpenAgeDays(shipment);
 }
 
 function getPriorityLabel(shipment) {
@@ -622,8 +988,8 @@ function getShipmentMonthAgeDays(shipment) {
   return getDaysSince(shipmentDate.toISOString());
 }
 
-function getStatusAgeDays(shipment) {
-  return getDaysSince(shipment.statusLastChangedAt || shipment.firstSeenAt || shipment.updatedAt);
+function getOpenAgeDays(shipment) {
+  return getDaysSince(shipment.fechaCreacion || shipment.firstSeenAt || shipment.updatedAt);
 }
 
 function getDaysSince(value) {
@@ -631,9 +997,59 @@ function getDaysSince(value) {
     return 0;
   }
 
-  const date = new Date(value);
+  const date = parseDateValue(value);
+  if (!date) {
+    return 0;
+  }
+
   const diffMs = Date.now() - date.getTime();
   return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+}
+
+function parseDateValue(value) {
+  if (!value) {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  const raw = `${value}`.trim();
+  if (!raw) {
+    return null;
+  }
+
+  const nativeDate = new Date(raw);
+  if (!Number.isNaN(nativeDate.getTime())) {
+    return nativeDate;
+  }
+
+  const match = raw.match(
+    /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([ap])\.\s*m\.)?$/i,
+  );
+
+  if (!match) {
+    return null;
+  }
+
+  const day = Number(match[1]);
+  const month = Number(match[2]) - 1;
+  const year = Number(match[3]);
+  let hour = Number(match[4] || 0);
+  const minute = Number(match[5] || 0);
+  const second = Number(match[6] || 0);
+  const meridiem = (match[7] || "").toLowerCase();
+
+  if (meridiem === "p" && hour < 12) {
+    hour += 12;
+  }
+
+  if (meridiem === "a" && hour === 12) {
+    hour = 0;
+  }
+
+  return new Date(year, month, day, hour, minute, second);
 }
 
 function formatMonthLabel(value) {

@@ -76,31 +76,16 @@ h2 {
 }
 
 h1 {
-  max-width: 10ch;
-  font-size: clamp(2.1rem, 4vw, 3.5rem);
-  line-height: 0.95;
+  max-width: 16ch;
+  font-size: clamp(2rem, 3.4vw, 3rem);
+  line-height: 1;
   letter-spacing: -0.04em;
 }
 
 .hero-heading {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.hero-kicker {
-  margin: 0;
-  color: var(--accent);
-  font-weight: 600;
-  font-size: 0.98rem;
-}
-
-.hero-text {
-  max-width: 60ch;
-  margin: 14px 0 0;
-  color: var(--muted);
-  font-size: 0.98rem;
-  line-height: 1.65;
+  gap: 0;
 }
 
 .upload-card {
@@ -382,6 +367,18 @@ select,
   color: var(--muted);
 }
 
+.breakdown-meta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.breakdown-percent {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
 .bar-track {
   height: 10px;
   border-radius: 999px;
@@ -443,6 +440,14 @@ tbody tr:nth-child(even) {
 
 tbody tr:hover {
   background: rgba(217, 231, 239, 0.34);
+}
+
+tbody tr.row-button {
+  cursor: pointer;
+}
+
+tbody tr.row-button.active-row {
+  background: rgba(181, 79, 45, 0.08);
 }
 
 .pill {
@@ -518,6 +523,58 @@ tbody tr:hover {
   line-height: 1.5;
 }
 
+.client-detail-card {
+  margin-top: 18px;
+  padding: 22px;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background: rgba(255, 252, 247, 0.76);
+}
+
+.detail-table-wrap {
+  margin-top: 8px;
+}
+
+.client-detail-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.client-detail-breakdown {
+  margin-bottom: 14px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(26, 34, 51, 0.08);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.client-detail-breakdowns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.mini-metric {
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(26, 34, 51, 0.08);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.mini-metric p {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.mini-metric strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
 .priority-value {
   display: inline-flex;
   align-items: center;
@@ -558,7 +615,9 @@ tbody tr:hover {
 
   .controls-topline,
   .filters-grid-inline,
-  .toggles-inline {
+  .toggles-inline,
+  .client-detail-metrics,
+  .client-detail-breakdowns {
     grid-template-columns: 1fr;
   }
 }
