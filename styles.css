@@ -37,9 +37,9 @@ body {
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.9fr) minmax(320px, 360px);
+  grid-template-columns: minmax(0, 1.5fr) minmax(360px, 0.9fr);
   gap: 24px;
-  align-items: start;
+  align-items: stretch;
   margin-bottom: 20px;
 }
 
@@ -57,18 +57,27 @@ body {
 }
 
 .hero-copy {
-  padding: 24px 30px;
-  display: flex;
+  padding: 24px 28px;
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 18px;
   align-items: center;
+  min-height: 180px;
 }
 
 .eyebrow {
-  margin: 0 0 10px;
+  margin: 0;
   font-size: 0.8rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--accent);
   font-weight: 700;
+}
+
+.hero-brand {
+  display: flex;
+  align-items: center;
+  height: 100%;
 }
 
 h1,
@@ -78,8 +87,8 @@ h2 {
 }
 
 h1 {
-  max-width: 14ch;
-  font-size: clamp(1.85rem, 2.8vw, 2.7rem);
+  max-width: 11ch;
+  font-size: clamp(2rem, 3vw, 3rem);
   line-height: 1.02;
   letter-spacing: -0.04em;
 }
@@ -89,14 +98,16 @@ h1 {
   flex-direction: column;
   gap: 0;
   width: 100%;
+  justify-content: center;
 }
 
 .upload-card {
-  padding: 22px;
+  padding: 22px 22px 18px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   gap: 10px;
+  min-height: 180px;
 }
 
 .upload-label,
@@ -558,6 +569,102 @@ tbody tr.row-button.active-row {
   margin-top: 8px;
 }
 
+.detail-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.detail-card {
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(26, 34, 51, 0.08);
+  background: rgba(255, 255, 255, 0.58);
+  display: grid;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.detail-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  border-radius: 20px 0 0 20px;
+  background: rgba(26, 34, 51, 0.1);
+}
+
+.detail-card.priority-high {
+  border-color: rgba(181, 79, 45, 0.18);
+  background: linear-gradient(180deg, rgba(255, 248, 244, 0.95), rgba(255, 255, 255, 0.72));
+}
+
+.detail-card.priority-medium {
+  border-color: rgba(203, 163, 78, 0.22);
+  background: linear-gradient(180deg, rgba(255, 251, 240, 0.95), rgba(255, 255, 255, 0.72));
+}
+
+.detail-card.priority-low {
+  border-color: rgba(95, 107, 53, 0.18);
+  background: linear-gradient(180deg, rgba(247, 250, 242, 0.95), rgba(255, 255, 255, 0.72));
+}
+
+.detail-card.status-transit::before {
+  background: #96ab58;
+}
+
+.detail-card.status-sent::before {
+  background: #d98a66;
+}
+
+.detail-card.status-closed::before {
+  background: #7e8aa3;
+}
+
+.detail-card.status-other::before {
+  background: #c8b36b;
+}
+
+.detail-card-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.detail-card-code {
+  display: grid;
+  gap: 6px;
+}
+
+.detail-card-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
+}
+
+.detail-meta-item {
+  display: grid;
+  gap: 4px;
+}
+
+.detail-meta-item span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.detail-meta-item strong {
+  font-size: 0.96rem;
+  line-height: 1.4;
+}
+
 .client-detail-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -609,6 +716,20 @@ tbody tr.row-button.active-row {
   font-weight: 700;
 }
 
+.detail-card.priority-high .priority-value {
+  background: rgba(181, 79, 45, 0.16);
+}
+
+.detail-card.priority-medium .priority-value {
+  background: rgba(203, 163, 78, 0.18);
+  color: #9a6b18;
+}
+
+.detail-card.priority-low .priority-value {
+  background: rgba(95, 107, 53, 0.16);
+  color: var(--olive);
+}
+
 .priority-stack {
   display: grid;
   gap: 6px;
@@ -621,6 +742,18 @@ tbody tr.row-button.active-row {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.detail-card.priority-high .priority-label {
+  color: var(--accent);
+}
+
+.detail-card.priority-medium .priority-label {
+  color: #9a6b18;
+}
+
+.detail-card.priority-low .priority-label {
+  color: var(--olive);
 }
 
 .empty-state {
@@ -636,11 +769,22 @@ tbody tr.row-button.active-row {
     grid-template-columns: 1fr;
   }
 
+  .hero-copy {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .hero-brand {
+    height: auto;
+  }
+
   .controls-topline,
   .filters-grid-inline,
   .toggles-inline,
   .client-detail-metrics,
-  .client-detail-breakdowns {
+  .client-detail-breakdowns,
+  .detail-cards-grid,
+  .detail-card-meta {
     grid-template-columns: 1fr;
   }
 }

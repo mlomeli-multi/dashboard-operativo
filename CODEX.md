@@ -332,6 +332,8 @@ Cambios funcionales agregados despues de la primera version:
   - tabla resumen por cliente con total, vivos, prioridad alta, edad promedio y servicio dominante
 - La tabla de `Clientes` ya permite hacer clic sobre un cliente para abrir abajo el detalle de sus embarques dentro de los filtros actuales.
 - El detalle del cliente ahora se abre en formato acordeon debajo de la fila seleccionada, para evitar scroll largo hasta el final de la tabla.
+- El listado de embarques dentro del detalle de cliente ya no usa una tabla larga; se rediseño como tarjetas compactas en grid para verse mas simetrico y legible.
+- Las tarjetas del detalle de cliente ahora usan acentos visuales por prioridad y por estatus para identificar mas rapido urgencia y etapa operativa.
 - El detalle de cliente ya incluye metricas rapidas propias:
   - embarques vivos
   - prioridad alta
@@ -365,6 +367,7 @@ Cambios funcionales agregados despues de la primera version:
   - acentos visuales circulares suaves
 - El encabezado principal se simplifico a `Loadboard Multi / agentes`.
 - El bloque superior se compacto para reducir espacio en blanco: titulo mas controlado, tarjeta de carga mas corta y sin alturas estiradas innecesarias.
+- El bloque superior ahora reparte mejor el ancho: la marca vive en una columna angosta y `Actualizar base` gana mas presencia para verse mas simetrico con el titulo.
 - Los desgloses del detalle de cliente ahora muestran conteo y porcentaje para comparar mas rapido.
 
 Recordatorio de criterio actual:

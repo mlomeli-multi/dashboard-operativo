@@ -715,28 +715,46 @@ function buildClientDetailMarkup(shipments, clientName) {
 
   const rowsMarkup = clientShipments.length
     ? clientShipments.map((shipment) => `
-        <tr>
-          <td>
-            <div class="shipment-cell">
+        <article class="detail-card ${getPriorityToneClass(shipment)} ${getStatusToneClass(shipment)}">
+          <div class="detail-card-top">
+            <div class="detail-card-code">
               <span class="shipment-code">${shipment.codigoEmbarque}</span>
               <span class="shipment-client">${shipment.descripcionClasificacion || shipment.prefijo || "-"}</span>
             </div>
-          </td>
-          <td><div class="secondary-cell">${formatMonthLabel(shipment.mesEmbarque)}</div></td>
-          <td><span class="pill${isLiveShipment(shipment) ? " live" : ""}">${shipment.estatus || "Sin estatus"}</span></td>
-          <td><div class="secondary-cell">${shipment.tipoServicio || "-"}</div></td>
-          <td><div class="secondary-cell">${shipment.creadoPor || "-"}</div></td>
-          <td><div class="secondary-cell">${formatDateTime(shipment.fechaCreacion)}</div></td>
-          <td><div class="secondary-cell">${getOpenAgeDays(shipment)} dias</div></td>
-          <td>
             <div class="priority-stack">
               <span class="priority-value">${Math.round(getPriorityScore(shipment))}</span>
               <span class="priority-label">${getPriorityLabel(shipment)}</span>
             </div>
-          </td>
-        </tr>
+          </div>
+          <div class="detail-card-meta">
+            <div class="detail-meta-item">
+              <span>Mes</span>
+              <strong>${formatMonthLabel(shipment.mesEmbarque)}</strong>
+            </div>
+            <div class="detail-meta-item">
+              <span>Estatus</span>
+              <strong><span class="pill${isLiveShipment(shipment) ? " live" : ""}">${shipment.estatus || "Sin estatus"}</span></strong>
+            </div>
+            <div class="detail-meta-item">
+              <span>Servicio</span>
+              <strong>${shipment.tipoServicio || "-"}</strong>
+            </div>
+            <div class="detail-meta-item">
+              <span>Creado por</span>
+              <strong>${shipment.creadoPor || "-"}</strong>
+            </div>
+            <div class="detail-meta-item">
+              <span>Fecha creacion</span>
+              <strong>${formatDateTime(shipment.fechaCreacion)}</strong>
+            </div>
+            <div class="detail-meta-item">
+              <span>Dias abiertos</span>
+              <strong>${getOpenAgeDays(shipment)} dias</strong>
+            </div>
+          </div>
+        </article>
       `).join("")
-    : `<tr><td class="empty-state" colspan="8">No hay embarques visibles para este cliente.</td></tr>`;
+    : `<p class="empty-state">No hay embarques visibles para este cliente.</p>`;
 
   return `
     <section class="client-detail-card">
@@ -766,22 +784,10 @@ function buildClientDetailMarkup(shipments, clientName) {
           <div class="breakdown-list">${statusBreakdown}</div>
         </div>
       </div>
-      <div class="table-wrap detail-table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Embarque</th>
-              <th>Mes</th>
-              <th>Estatus</th>
-              <th>Servicio</th>
-              <th>Creado por</th>
-              <th>Fecha creacion</th>
-              <th>Dias abiertos</th>
-              <th>Prioridad</th>
-            </tr>
-          </thead>
-          <tbody>${rowsMarkup}</tbody>
-        </table>
+      <div class="detail-table-wrap">
+        <div class="detail-cards-grid">
+          ${rowsMarkup}
+        </div>
       </div>
     </section>
   `;
@@ -1041,6 +1047,36 @@ function getPriorityLabel(shipment) {
   }
 
   return "Baja";
+}
+
+function getPriorityToneClass(shipment) {
+  const label = getPriorityLabel(shipment);
+  if (label === "Alta") {
+    return "priority-high";
+  }
+
+  if (label === "Media") {
+    return "priority-medium";
+  }
+
+  return "priority-low";
+}
+
+function getStatusToneClass(shipment) {
+  const status = toText(shipment.estatus).toLowerCase();
+  if (status.includes("transito")) {
+    return "status-transit";
+  }
+
+  if (status.includes("enviado")) {
+    return "status-sent";
+  }
+
+  if (status.includes("entregado") || status.includes("finalizado") || status.includes("cancelado")) {
+    return "status-closed";
+  }
+
+  return "status-other";
 }
 
 function getShipmentMonthAgeDays(shipment) {
