@@ -14,7 +14,10 @@
     <header class="hero">
       <div class="hero-copy">
         <p class="eyebrow">Dashboard Operativo</p>
-        <h1>Seguimiento vivo de embarques para tu equipo</h1>
+        <div class="hero-heading">
+          <h1>Embarques vivos de tu equipo</h1>
+          <p class="hero-kicker">Carga operativa filtrada, actualizada y agrupada por mes.</p>
+        </div>
         <p class="hero-text">
           Sube el Excel mas reciente, actualiza estatus por <strong>Codigo de Embarque</strong> y conserva los registros
           aunque desaparezcan del archivo nuevo.
@@ -22,79 +25,39 @@
       </div>
 
       <section class="upload-card">
+        <div class="panel-head">
+          <h2>Actualizar base</h2>
+          <p>Sube un Excel nuevo para refrescar los embarques guardados en este navegador.</p>
+        </div>
         <label class="upload-label" for="excelFile">Cargar archivo Excel</label>
         <input id="excelFile" type="file" accept=".xlsx,.xls" />
-        <button id="clearStorageButton" class="ghost-button" type="button">Limpiar datos guardados</button>
+        <p class="helper-text">Cada carga nueva se mezcla con la base actual y actualiza los estatus por Codigo de Embarque.</p>
         <p id="uploadSummary" class="upload-summary">Aun no hay datos cargados.</p>
       </section>
     </header>
 
     <main class="dashboard-layout">
-      <section class="controls-panel">
-        <div class="panel-head">
-          <h2>Vista</h2>
-          <p>General y meses detectados desde el codigo del embarque.</p>
-        </div>
-        <div id="monthTabs" class="tabs" aria-label="Pestanas por mes"></div>
-
-        <div class="filters-grid">
-          <label>
-            <span>Buscar</span>
-            <input id="searchInput" type="search" placeholder="Codigo, PRO, AWB..." />
-          </label>
-
-          <label>
-            <span>Estatus</span>
-            <select id="statusFilter">
-              <option value="all">Todos</option>
-            </select>
-          </label>
-
-          <label>
-            <span>Creado por</span>
-            <select id="creatorFilter">
-              <option value="all">Todos</option>
-            </select>
-          </label>
-
-          <label>
-            <span>Tipo de servicio</span>
-            <select id="serviceFilter">
-              <option value="all">Todos</option>
-            </select>
-          </label>
-        </div>
-
-        <div class="toggles">
-          <label class="toggle">
-            <input id="liveOnlyToggle" type="checkbox" checked />
-            <span>Mostrar solo vivos</span>
-          </label>
-
-          <label class="toggle">
-            <input id="missingOnlyToggle" type="checkbox" />
-            <span>Solo "ya no viene en archivo"</span>
-          </label>
-        </div>
-      </section>
-
       <section class="content-panel">
         <div class="metrics-grid">
-          <article class="metric-card">
+          <article class="metric-card total">
             <p>Total visibles</p>
             <strong id="totalVisibleMetric">0</strong>
+            <div class="metric-meta"><span class="metric-dot"></span><span>Base filtrada actual</span></div>
           </article>
-          <article class="metric-card">
+          <article class="metric-card live">
             <p>Vivos</p>
             <strong id="liveMetric">0</strong>
+            <div class="metric-meta"><span class="metric-dot"></span><span>Seguimiento activo</span></div>
           </article>
-          <article class="metric-card">
+          <article class="metric-card missing">
             <p>No vienen en ultima carga</p>
             <strong id="missingMetric">0</strong>
+            <div class="metric-meta"><span class="metric-dot"></span><span>Casos a revisar</span></div>
           </article>
-          <article class="metric-card">
+          <article class="metric-card months">
             <p>Meses activos</p>
             <strong id="monthsMetric">0</strong>
+            <div class="metric-meta"><span class="metric-dot"></span><span>Ventanas detectadas</span></div>
           </article>
         </div>
 
@@ -116,27 +79,70 @@
           </section>
         </div>
 
+        <section class="controls-panel controls-panel-inline">
+          <div class="controls-topline">
+            <div class="panel-head">
+              <h2>Vista y filtros</h2>
+              <p>Primero revisa el panorama general y luego afina la vista por mes, estatus o servicio.</p>
+            </div>
+            <div id="monthTabs" class="tabs" aria-label="Pestanas por mes"></div>
+          </div>
+
+          <div class="filters-grid filters-grid-inline">
+            <label>
+              <span>Buscar</span>
+              <input id="searchInput" type="search" placeholder="Codigo, cliente o estatus..." />
+            </label>
+
+            <label>
+              <span>Estatus</span>
+              <select id="statusFilter">
+                <option value="all">Todos</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Creado por</span>
+              <select id="creatorFilter">
+                <option value="all">Todos</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Tipo de servicio</span>
+              <select id="serviceFilter">
+                <option value="all">Todos</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="toggles toggles-inline">
+            <label class="toggle">
+              <input id="liveOnlyToggle" type="checkbox" checked />
+              <span>Mostrar solo vivos</span>
+            </label>
+
+            <label class="toggle">
+              <input id="missingOnlyToggle" type="checkbox" />
+              <span>Solo "ya no viene en archivo"</span>
+            </label>
+          </div>
+        </section>
+
         <section class="table-card">
           <div class="panel-head">
             <h2>Embarques</h2>
             <p id="tableSummary">Sin registros cargados.</p>
           </div>
 
+          <div id="priorityIntro" class="priority-intro" hidden>
+            <strong>Reporte de prioridad</strong>
+            <p>Esta vista resalta embarques vivos que merecen seguimiento primero: meses mas viejos y estatus que llevan mas tiempo sin cambio.</p>
+          </div>
+
           <div class="table-wrap">
             <table>
-              <thead>
-                <tr>
-                  <th>Codigo</th>
-                  <th>Mes</th>
-                  <th>Estatus</th>
-                  <th>Creado por</th>
-                  <th>Servicio</th>
-                  <th>Clasificacion</th>
-                  <th>PRO</th>
-                  <th>AWB</th>
-                  <th>Ultima carga</th>
-                </tr>
-              </thead>
+              <thead id="shipmentsTableHead"></thead>
               <tbody id="shipmentsTableBody"></tbody>
             </table>
           </div>

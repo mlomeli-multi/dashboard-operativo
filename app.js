@@ -62,7 +62,6 @@ const state = {
 
 const refs = {
   excelFile: document.querySelector("#excelFile"),
-  clearStorageButton: document.querySelector("#clearStorageButton"),
   uploadSummary: document.querySelector("#uploadSummary"),
   monthTabs: document.querySelector("#monthTabs"),
   searchInput: document.querySelector("#searchInput"),
@@ -77,6 +76,8 @@ const refs = {
   monthsMetric: document.querySelector("#monthsMetric"),
   statusBreakdown: document.querySelector("#statusBreakdown"),
   serviceBreakdown: document.querySelector("#serviceBreakdown"),
+  priorityIntro: document.querySelector("#priorityIntro"),
+  shipmentsTableHead: document.querySelector("#shipmentsTableHead"),
   shipmentsTableBody: document.querySelector("#shipmentsTableBody"),
   tableSummary: document.querySelector("#tableSummary"),
 };
@@ -92,7 +93,6 @@ function bootstrap() {
 
 function bindEvents() {
   refs.excelFile.addEventListener("change", handleFileUpload);
-  refs.clearStorageButton.addEventListener("click", clearStorage);
   refs.searchInput.addEventListener("input", (event) => {
     state.filters.search = event.target.value.trim().toLowerCase();
     render();
@@ -184,11 +184,17 @@ function mergeRows(rows) {
 
   for (const [codigo, shipment] of incomingMap.entries()) {
     const existing = mergedMap.get(codigo);
+    const statusLastChangedAt = existing && existing.estatus === shipment.estatus
+      ? (existing.statusLastChangedAt || existing.firstSeenAt || existing.createdAt || existing.updatedAt || uploadTag)
+      : uploadTag;
+
     mergedMap.set(codigo, {
       ...existing,
       ...shipment,
       presentInLatestUpload: true,
       missingInLatestUpload: false,
+      firstSeenAt: existing?.firstSeenAt || existing?.createdAt || shipment.firstSeenAt || uploadTag,
+      statusLastChangedAt,
       updatedAt: uploadTag,
     });
   }
@@ -225,6 +231,7 @@ function normalizeRow(row, uploadTag) {
     numeroPro: toText(normalizedRow.numero_pro),
     codigoCotizacion: toText(normalizedRow.codigo_de_cotizacion),
     estatus: toText(normalizedRow.estatus),
+    cliente: toText(normalizedRow.cliente),
     creadoPor,
     ejecutivoOperaciones: toText(normalizedRow.ejecutivo_de_operaciones),
     ejecutivoVentas: toText(normalizedRow.ejecutivo_de_ventas),
@@ -236,6 +243,8 @@ function normalizeRow(row, uploadTag) {
     clasificacionActiva: nomenclature.active,
     presentInLatestUpload: true,
     missingInLatestUpload: false,
+    firstSeenAt: uploadTag,
+    statusLastChangedAt: uploadTag,
     createdAt: uploadTag,
     updatedAt: uploadTag,
   };
@@ -276,11 +285,11 @@ function render() {
 
 function getFilteredShipments() {
   return state.shipments.filter((shipment) => {
-    if (state.activeTab !== "general" && shipment.mesEmbarque !== state.activeTab) {
+    if (state.activeTab !== "general" && state.activeTab !== "priority" && shipment.mesEmbarque !== state.activeTab) {
       return false;
     }
 
-    if (state.filters.liveOnly && !isLiveShipment(shipment)) {
+    if ((state.filters.liveOnly || state.activeTab === "priority") && !isLiveShipment(shipment)) {
       return false;
     }
 
@@ -305,6 +314,7 @@ function getFilteredShipments() {
         shipment.codigoEmbarque,
         shipment.numeroPro,
         shipment.awb,
+        shipment.cliente,
         shipment.estatus,
         shipment.creadoPor,
         shipment.tipoServicio,
@@ -326,18 +336,18 @@ function renderTabs() {
       .filter(Boolean),
   ).sort();
 
-  if (state.activeTab !== "general" && !months.includes(state.activeTab)) {
+  if (state.activeTab !== "general" && state.activeTab !== "priority" && !months.includes(state.activeTab)) {
     state.activeTab = "general";
   }
 
   refs.monthTabs.innerHTML = "";
-  const allTabs = ["general", ...months];
+  const allTabs = ["priority", "general", ...months];
 
   allTabs.forEach((tabKey) => {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = `tab-button${state.activeTab === tabKey ? " active" : ""}`;
-    button.textContent = tabKey === "general" ? "General" : formatMonthLabel(tabKey);
+    button.className = `tab-button${tabKey === "priority" ? " priority-tab" : ""}${state.activeTab === tabKey ? " active" : ""}`;
+    button.textContent = getTabLabel(tabKey);
     button.addEventListener("click", () => {
       state.activeTab = tabKey;
       render();
@@ -398,45 +408,105 @@ function renderBreakdownList(container, entries, fallbackLabel, serviceMode) {
 }
 
 function renderTable(shipments) {
-  refs.shipmentsTableBody.innerHTML = "";
-  refs.tableSummary.textContent = `${shipments.length} embarques visibles en ${state.activeTab === "general" ? "la vista general" : formatMonthLabel(state.activeTab)}.`;
+  const orderedShipments = state.activeTab === "priority"
+    ? [...shipments].sort(comparePriorityShipments)
+    : shipments;
 
-  if (!shipments.length) {
-    refs.shipmentsTableBody.innerHTML = `<tr><td class="empty-state" colspan="9">No hay embarques que cumplan con los filtros actuales.</td></tr>`;
+  refs.shipmentsTableBody.innerHTML = "";
+  refs.priorityIntro.hidden = state.activeTab !== "priority";
+  refs.shipmentsTableHead.innerHTML = state.activeTab === "priority"
+    ? `
+      <tr>
+        <th>Embarque / Cliente</th>
+        <th>Mes</th>
+        <th>Estatus</th>
+        <th>Creado por</th>
+        <th>Servicio</th>
+        <th>Ultimo cambio</th>
+        <th>Dias sin cambio</th>
+        <th>Prioridad</th>
+      </tr>
+    `
+    : `
+      <tr>
+        <th>Embarque / Cliente</th>
+        <th>Mes</th>
+        <th>Estatus</th>
+        <th>Creado por</th>
+        <th>Servicio</th>
+        <th>Clasificacion</th>
+        <th>Ultimo cambio</th>
+        <th>Ultima carga</th>
+      </tr>
+    `;
+  refs.tableSummary.textContent = getTableSummary(orderedShipments);
+
+  if (!orderedShipments.length) {
+    refs.shipmentsTableBody.innerHTML = `<tr><td class="empty-state" colspan="8">No hay embarques que cumplan con los filtros actuales.</td></tr>`;
     return;
   }
 
-  shipments.forEach((shipment) => {
+  orderedShipments.forEach((shipment) => {
     const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${shipment.codigoEmbarque}</td>
-      <td>${formatMonthLabel(shipment.mesEmbarque)}</td>
-      <td>
-        <span class="pill${isLiveShipment(shipment) ? " live" : ""}">${shipment.estatus || "Sin estatus"}</span>
-      </td>
-      <td>${shipment.creadoPor || "-"}</td>
-      <td>${shipment.tipoServicio || "-"}</td>
-      <td>${shipment.descripcionClasificacion || shipment.prefijo || "-"}</td>
-      <td>${shipment.numeroPro || "-"}</td>
-      <td>${shipment.awb || "-"}</td>
-      <td>
-        ${shipment.missingInLatestUpload
-          ? '<span class="pill missing">Ya no viene en archivo</span>'
-          : formatDateTime(shipment.updatedAt)}
-      </td>
-    `;
+    row.innerHTML = state.activeTab === "priority"
+      ? `
+        <td>
+          <div class="shipment-cell">
+            <span class="shipment-code">${shipment.codigoEmbarque}</span>
+            <span class="shipment-client">${shipment.cliente || "Cliente no disponible"}</span>
+          </div>
+        </td>
+        <td><div class="secondary-cell">${formatMonthLabel(shipment.mesEmbarque)}</div></td>
+        <td><span class="pill live">${shipment.estatus || "Sin estatus"}</span></td>
+        <td><div class="secondary-cell">${shipment.creadoPor || "-"}</div></td>
+        <td><div class="secondary-cell">${shipment.tipoServicio || "-"}</div></td>
+        <td>
+          <div class="secondary-cell">
+            ${formatDateTime(shipment.statusLastChangedAt || shipment.firstSeenAt || shipment.updatedAt)}
+            <small>Ultimo movimiento detectado</small>
+          </div>
+        </td>
+        <td>
+          <div class="secondary-cell">
+            ${getStatusAgeDays(shipment)} dias
+            <small>Sin cambio de estatus</small>
+          </div>
+        </td>
+        <td>
+          <div class="priority-stack">
+            <span class="priority-value">${Math.round(getPriorityScore(shipment))}</span>
+            <span class="priority-label">${getPriorityLabel(shipment)}</span>
+          </div>
+        </td>
+      `
+      : `
+        <td>
+          <div class="shipment-cell">
+            <span class="shipment-code">${shipment.codigoEmbarque}</span>
+            <span class="shipment-client">${shipment.cliente || "Cliente no disponible"}</span>
+          </div>
+        </td>
+        <td><div class="secondary-cell">${formatMonthLabel(shipment.mesEmbarque)}</div></td>
+        <td>
+          <span class="pill${isLiveShipment(shipment) ? " live" : ""}">${shipment.estatus || "Sin estatus"}</span>
+        </td>
+        <td><div class="secondary-cell">${shipment.creadoPor || "-"}</div></td>
+        <td><div class="secondary-cell">${shipment.tipoServicio || "-"}</div></td>
+        <td><div class="secondary-cell">${shipment.descripcionClasificacion || shipment.prefijo || "-"}</div></td>
+        <td>
+          <div class="secondary-cell">
+            ${formatDateTime(shipment.statusLastChangedAt || shipment.firstSeenAt || shipment.updatedAt)}
+            <small>Ultimo cambio de estatus</small>
+          </div>
+        </td>
+        <td>
+          ${shipment.missingInLatestUpload
+            ? '<span class="pill missing">Ya no viene en archivo</span>'
+            : `<div class="secondary-cell">${formatDateTime(shipment.updatedAt)}<small>Ultima importacion</small></div>`}
+        </td>
+      `;
     refs.shipmentsTableBody.append(row);
   });
-}
-
-function clearStorage() {
-  localStorage.removeItem(STORAGE_KEY);
-  localStorage.removeItem(LAST_UPLOAD_KEY);
-  state.shipments = [];
-  state.activeTab = "general";
-  refs.uploadSummary.textContent = "Datos guardados eliminados.";
-  populateFilters();
-  render();
 }
 
 function isLiveShipment(shipment) {
@@ -464,6 +534,18 @@ function getShipmentPrefix(code) {
   return toText(code).split("-")[0] || "";
 }
 
+function getTabLabel(tabKey) {
+  if (tabKey === "priority") {
+    return "Prioridad";
+  }
+
+  if (tabKey === "general") {
+    return "General";
+  }
+
+  return formatMonthLabel(tabKey);
+}
+
 function normalizeRowKeys(row) {
   return Object.fromEntries(
     Object.entries(row).map(([key, value]) => [
@@ -489,6 +571,69 @@ function getMonthFromCode(code) {
   }
 
   return `${match[1]}-${match[2]}`;
+}
+
+function getTableSummary(shipments) {
+  if (state.activeTab === "priority") {
+    return `${shipments.length} embarques vivos ordenados por antiguedad y tiempo sin cambio de estatus.`;
+  }
+
+  return `${shipments.length} embarques visibles en ${state.activeTab === "general" ? "la vista general" : formatMonthLabel(state.activeTab)}.`;
+}
+
+function comparePriorityShipments(a, b) {
+  const scoreDiff = getPriorityScore(b) - getPriorityScore(a);
+  if (scoreDiff !== 0) {
+    return scoreDiff;
+  }
+
+  const ageDiff = getStatusAgeDays(b) - getStatusAgeDays(a);
+  if (ageDiff !== 0) {
+    return ageDiff;
+  }
+
+  return a.codigoEmbarque.localeCompare(b.codigoEmbarque);
+}
+
+function getPriorityScore(shipment) {
+  return (getShipmentMonthAgeDays(shipment) * 2) + getStatusAgeDays(shipment);
+}
+
+function getPriorityLabel(shipment) {
+  const score = getPriorityScore(shipment);
+  if (score >= 90) {
+    return "Alta";
+  }
+
+  if (score >= 40) {
+    return "Media";
+  }
+
+  return "Baja";
+}
+
+function getShipmentMonthAgeDays(shipment) {
+  if (!shipment.mesEmbarque || shipment.mesEmbarque === "Sin mes") {
+    return 0;
+  }
+
+  const [year, month] = shipment.mesEmbarque.split("-");
+  const shipmentDate = new Date(Number(year), Number(month) - 1, 1);
+  return getDaysSince(shipmentDate.toISOString());
+}
+
+function getStatusAgeDays(shipment) {
+  return getDaysSince(shipment.statusLastChangedAt || shipment.firstSeenAt || shipment.updatedAt);
+}
+
+function getDaysSince(value) {
+  if (!value) {
+    return 0;
+  }
+
+  const date = new Date(value);
+  const diffMs = Date.now() - date.getTime();
+  return Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
 }
 
 function formatMonthLabel(value) {
