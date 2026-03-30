@@ -701,6 +701,7 @@ function buildClientDetailMarkup(shipments, clientName) {
   const clientShipments = shipments
     .filter((shipment) => (shipment.cliente || "Cliente no disponible") === clientName)
     .sort(comparePriorityShipments);
+  const liveClientShipments = clientShipments.filter(isLiveShipment);
 
   const monthBreakdown = renderBreakdownMarkup(
     countByLabel(clientShipments.map((shipment) => formatMonthLabel(shipment.mesEmbarque))),
@@ -763,8 +764,8 @@ function buildClientDetailMarkup(shipments, clientName) {
         <p>${clientShipments.length} embarques del cliente dentro de los filtros actuales.</p>
       </div>
       <div class="client-detail-metrics">
-        <article class="mini-metric"><p>Embarques vivos</p><strong>${clientShipments.filter(isLiveShipment).length}</strong></article>
-        <article class="mini-metric"><p>Prioridad alta</p><strong>${clientShipments.filter((shipment) => getPriorityLabel(shipment) === "Alta").length}</strong></article>
+        <article class="mini-metric"><p>Embarques vivos</p><strong>${liveClientShipments.length}</strong></article>
+        <article class="mini-metric"><p>Prioridad alta</p><strong>${liveClientShipments.filter((shipment) => getPriorityLabel(shipment) === "Alta").length}</strong></article>
         <article class="mini-metric"><p>Edad promedio</p><strong>${getAverageOpenAge(clientShipments)} dias</strong></article>
         <article class="mini-metric"><p>Servicio dominante</p><strong>${getDominantServiceForShipments(clientShipments)}</strong></article>
       </div>
@@ -1121,36 +1122,36 @@ function parseDateValue(value) {
     return null;
   }
 
+  const match = raw.match(
+    /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([ap])\.\s*m\.)?$/i,
+  );
+
+  if (match) {
+    const day = Number(match[1]);
+    const month = Number(match[2]) - 1;
+    const year = Number(match[3]);
+    let hour = Number(match[4] || 0);
+    const minute = Number(match[5] || 0);
+    const second = Number(match[6] || 0);
+    const meridiem = (match[7] || "").toLowerCase();
+
+    if (meridiem === "p" && hour < 12) {
+      hour += 12;
+    }
+
+    if (meridiem === "a" && hour === 12) {
+      hour = 0;
+    }
+
+    return new Date(year, month, day, hour, minute, second);
+  }
+
   const nativeDate = new Date(raw);
   if (!Number.isNaN(nativeDate.getTime())) {
     return nativeDate;
   }
 
-  const match = raw.match(
-    /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([ap])\.\s*m\.)?$/i,
-  );
-
-  if (!match) {
-    return null;
-  }
-
-  const day = Number(match[1]);
-  const month = Number(match[2]) - 1;
-  const year = Number(match[3]);
-  let hour = Number(match[4] || 0);
-  const minute = Number(match[5] || 0);
-  const second = Number(match[6] || 0);
-  const meridiem = (match[7] || "").toLowerCase();
-
-  if (meridiem === "p" && hour < 12) {
-    hour += 12;
-  }
-
-  if (meridiem === "a" && hour === 12) {
-    hour = 0;
-  }
-
-  return new Date(year, month, day, hour, minute, second);
+  return null;
 }
 
 function formatMonthLabel(value) {
@@ -1168,10 +1169,15 @@ function formatDateTime(value) {
     return "-";
   }
 
+  const parsedDate = parseDateValue(value);
+  if (!parsedDate) {
+    return "-";
+  }
+
   return new Intl.DateTimeFormat("es-MX", {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value));
+  }).format(parsedDate);
 }
 
 function toText(value) {

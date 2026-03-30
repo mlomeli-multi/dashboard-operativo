@@ -374,3 +374,6 @@ Recordatorio de criterio actual:
 
 - Un embarque de febrero que siga vivo debe aparecer con mayor prioridad que uno equivalente de marzo.
 - Un embarque de inicios de marzo sigue contando como viejo, aunque menos que uno de febrero o enero.
+- El parser de fechas debe priorizar el formato regional del Excel (`dd/mm/yyyy` y variantes con hora) antes de usar parseos nativos del navegador.
+- La fecha mostrada en UI debe usar el mismo parser que la logica de `Dias abiertos` y `Prioridad`.
+- En el detalle del cliente, la metrica `Prioridad alta` debe contar solo embarques vivos para mantenerse consistente con el resumen agregado por cliente.
